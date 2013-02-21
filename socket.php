@@ -44,7 +44,7 @@ class rex_socket
         $this->ssl = $ssl;
 
         $this->addHeader('Host', $this->host);
-        $this->addHeader('User-Agent', 'REDAXO/' . rex::getVersion());
+        $this->addHeader('User-Agent', 'redaxo4-socket/1.0');
         $this->addHeader('Connection', 'Close');
     }
 
@@ -60,10 +60,6 @@ class rex_socket
      */
     public static function factory($host, $port = 80, $ssl = false)
     {
-        if (get_called_class() === __CLASS__ && ($proxy = rex::getProperty('socket_proxy'))) {
-            return rex_socket_proxy::factoryUrl($proxy)->setDestination($host, $port, $ssl);
-        }
-
         return new static($host, $port, $ssl);
     }
 
@@ -167,19 +163,19 @@ class rex_socket
                 $fileFormat = '--' . $boundary . $eol . 'Content-Disposition: form-data; name="%s"; filename="%s"' . $eol . 'Content-Type: %s' . $eol . $eol;
                 $end = '--' . $boundary . '--' . $eol;
                 $length = 0;
-                $temp = explode('&', rex_string::buildQuery($data));
+                $temp = explode('&', http_build_query($data, null, '&'));
                 $data = array();
-                $partLength = rex_string::size(sprintf($dataFormat, '') . $eol);
+                $partLength = strlen(sprintf($dataFormat, '') . $eol);
                 foreach ($temp as $t) {
                     list($key, $value) = array_map('urldecode', explode('=', $t, 2));
                     $data[$key] = $value;
-                    $length += $partLength + rex_string::size($key) + rex_string::size($value);
+                    $length += $partLength + strlen($key) + strlen($value);
                 }
-                $partLength = rex_string::size(sprintf($fileFormat, '', '', '') . $eol);
+                $partLength = strlen(sprintf($fileFormat, '', '', '') . $eol);
                 foreach ($files as $key => $file) {
-                    $length += $partLength + rex_string::size($key) + rex_string::size(basename($file['path'])) + rex_string::size($file['type']) + filesize($file['path']);
+                    $length += $partLength + strlen($key) + strlen(basename($file['path'])) + strlen($file['type']) + filesize($file['path']);
                 }
-                $length += rex_string::size($end);
+                $length += strlen($end);
                 fwrite($stream, 'Content-Length: ' . $length . $eol . $eol);
                 foreach ($data as $key => $value) {
                     fwrite($stream, sprintf($dataFormat, $key) . $value . $eol);
@@ -197,7 +193,7 @@ class rex_socket
             };
         } elseif (!is_callable($data)) {
             if (is_array($data))
-                $data = rex_string::buildQuery($data);
+                $data = http_build_query($data, null, '&');
             $this->addHeader('Content-Type', 'application/x-www-form-urlencoded');
         }
         return $this->doRequest('POST', $data);
@@ -269,7 +265,7 @@ class rex_socket
             fwrite($this->stream, str_replace(array("\r", "\n"), '', $header) . $eol);
         }
         if (!is_callable($data)) {
-            fwrite($this->stream, 'Content-Length: ' . rex_string::size($data) . $eol);
+            fwrite($this->stream, 'Content-Length: ' . strlen($data) . $eol);
             fwrite($this->stream, $eol . $data);
         } else {
             call_user_func($data, $this->stream);
@@ -332,4 +328,4 @@ class rex_socket
  *
  * @see rex_socket
  */
-class rex_socket_exception extends rex_exception {}
+class rex_socket_exception extends Exception {}

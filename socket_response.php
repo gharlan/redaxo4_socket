@@ -210,7 +210,7 @@ class rex_socket_response
     public function writeBodyTo($resource)
     {
         $close = false;
-        if (is_string($resource) && rex_dir::create(dirname($resource))) {
+        if (is_string($resource)) {
             $resource = fopen($resource, 'wb');
             $close = true;
         }
